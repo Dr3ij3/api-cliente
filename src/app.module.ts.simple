@@ -1,0 +1,17 @@
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { CustomerModule } from './customer.module';
+
+@Module({
+  imports: [
+    CustomerModule,
+    MongooseModule.forRoot(
+      'mongodb+srv://rhadijadreige:admin123@cluster0.gynahsy.mongodb.net/customer?retryWrites=true&w=majority',
+      {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      }
+    ),
+  ],
+})
+export class AppModule { }

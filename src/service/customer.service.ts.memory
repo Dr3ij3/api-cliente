@@ -1,0 +1,53 @@
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { CreateCustomerdto } from '../../src/dto/create.customer.dto';
+import { Customer } from '../../src/repository/customer.model';
+import { CpfValidator } from '../../src/utils/cpf-validator';
+import { InMemoryCustomerRepository } from '../repository/memory/in-memory-customer.repository';
+
+@Injectable()
+export class CustomerService {
+    constructor(
+        @Inject('CustomerRepository') private customerRepository: InMemoryCustomerRepository, 
+        private cpfValidator: CpfValidator
+    ) { }
+
+    async create(customer: CreateCustomerdto): Promise<Customer> {
+        customer.cpf = customer.cpf.replace(/[\D]/g, '');
+        this.cpfValidator.validate(customer.cpf);
+        const customerExists = await this.customerRepository.findOne({ cpf: customer.cpf });
+        if (customerExists) {
+            throw new HttpException('User already exists!,', HttpStatus.BAD_REQUEST);
+        }
+        
+        // Criando um objeto Customer completo
+        const newCustomer = new Customer();
+        newCustomer.cpf = customer.cpf;
+        newCustomer.name = customer.name;
+        newCustomer.email = customer.email;
+        newCustomer.state = customer.state;
+        newCustomer.city = customer.city || 'Default City';
+        newCustomer.telephone = customer.telephone || '000000000';
+        
+        return await this.customerRepository.create(newCustomer);
+    }
+
+    async retrieveCustomer(cpf: string): Promise<Customer> {
+        this.cpfValidator.validate(cpf);
+        const customerExists = await this.customerRepository.findOne({ cpf: cpf });
+        if (!customerExists) {
+            throw new HttpException('User does not exist!,', HttpStatus.NOT_FOUND);
+        }
+        return customerExists;
+    }
+
+    async deleteCustomer(cpf: string): Promise<{ message: string }> {
+        this.cpfValidator.validate(cpf);
+        const customerExists = await this.customerRepository.findOne({ cpf: cpf });
+        if (!customerExists) {
+            throw new HttpException('User does not exist!', HttpStatus.NOT_FOUND);
+        }
+        
+        await this.customerRepository.deleteOne({ cpf: cpf });
+        return { message: 'Customer successfully deleted' };
+    }
+}
